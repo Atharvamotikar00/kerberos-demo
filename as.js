@@ -15,7 +15,7 @@
 
 const crypto = require('crypto');
 const db = require('./db');
-const { deriveKey, ITERATIONS } = require('../kdf');
+const { deriveKey, ITERATIONS } = require('./kdf');
 const aes = require('../aes');
 const { randomBytes, toB64 } = require('../util');
 const { KRBTGT_KEY } = require('../secrets');
