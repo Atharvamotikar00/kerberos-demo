@@ -4,7 +4,7 @@
 // KDC's principal database, the krbtgt key, or any client's password-derived
 // key -- exactly like a real Kerberized service.
 
-const aes = require('../aes');
+const aes = require('./aes');
 const { APP_SERVER_KEY } = require('../secrets');
 
 const SKEW_MS = 5 * 60 * 1000;
