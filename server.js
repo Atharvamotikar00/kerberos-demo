@@ -8,9 +8,9 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 
-const as = require('./src/kdc/as');
-const tgs = require('./src/kdc/tgs');
-const appServer = require('./src/appServer/appServer');
+const as = require('./as');
+const tgs = require('./tgs');
+const appServer = require('./appServer');
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const PORT = process.env.PORT || 4000;
