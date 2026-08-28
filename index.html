@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kerberos v5 — Y2K Protocol Demo</title>
+<link rel="stylesheet" href="/styles.css?v=2" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <h1>Kerberos v5</h1>
+    <div class="header-accent-line"></div>
+    <p class="subtitle">A real, end-to-end simulation of the RFC 4120 handshake — actual AES-256-GCM ciphertext, actual HTTP hops between three separate backend services, actual cryptographic failures.</p>
+    <div class="y2k-badges">
+      <span class="y2k-badge">&#x2726; LIVE CRYPTO</span>
+      <span class="y2k-badge badge-alt">&#x2605; RFC 4120</span>
+      <span class="y2k-badge">&#x2726; AES-256-GCM</span>
+    </div>
+  </div>
+</header>
+
+<nav class="site-nav">
+  <div class="wrap">
+    <a href="#intro">Introduction</a>
+    <a href="#diagram">Flow Diagram</a>
+    <a href="#auth">Authentication</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ 1. INTRODUCTION ============ -->
+  <section id="intro" class="section">
+    <div class="y2k-divider"></div>
+    <h2>What is Kerberos?</h2>
+    <p>
+      Kerberos is a network authentication protocol built around one core idea:
+      <strong>prove who you are without ever sending your password across the network</strong> —
+      not even once, not even encrypted. Instead, you prove you <em>know</em> your password by
+      using a key derived from it to encrypt a timestamp, which only someone holding the
+      matching key could have produced correctly.
+    </p>
+    <p>
+      It also gives you <strong>single sign-on</strong>: authenticate once with your password,
+      and use the resulting ticket to access any number of services afterward — without typing
+      your password again — and <strong>mutual authentication</strong>: not only does the service
+      verify you, you get cryptographic proof that the service is the real one, not an impostor.
+    </p>
+
+    <div class="actor-grid">
+      <div class="actor-card"><h3>Client</h3><p>You. Knows only your password — never any server's secret key.</p></div>
+      <div class="actor-card"><h3>AS <span class="tip" data-glossary="as">?</span></h3><p>Authentication Server. Verifies your password-derived key, issues a Ticket Granting Ticket.</p></div>
+      <div class="actor-card"><h3>TGS <span class="tip" data-glossary="tgs">?</span></h3><p>Ticket Granting Server. Trades your TGT for short-lived tickets to specific services.</p></div>
+      <div class="actor-card"><h3>App Server</h3><p>The service you actually want to use. Only trusts tickets it can decrypt with its own key.</p></div>
+    </div>
+    <p class="note">
+      AS and TGS together are usually called the <strong>KDC</strong> <span class="tip" data-glossary="kdc">?</span> — the Key Distribution Center.
+      You're about to walk through all six message hops below, with real ciphertext at every step.
+    </p>
+  </section>
+
+  <!-- ============ 2. FLOW DIAGRAM ============ -->
+  <section id="diagram" class="section">
+    <div class="y2k-divider"></div>
+    <h2>The six message hops</h2>
+    <p>This is the reference diagram for the exchange, matching RFC&nbsp;4120's structure. It's reused below with the active hop highlighted as you progress.</p>
+    <div id="diagram-static" class="diagram-container"></div>
+    <ul class="hop-legend">
+      <li><strong>AS-REQ / AS-REP</strong> — client authenticates, receives a Ticket Granting Ticket.</li>
+      <li><strong>TGS-REQ / TGS-REP</strong> — client trades the TGT for a ticket to a specific service.</li>
+      <li><strong>AP-REQ / AP-REP</strong> — client presents the service ticket; server proves itself back (mutual auth).</li>
+    </ul>
+  </section>
+
+  <!-- ============ 3. AUTHENTICATION (interactive) ============ -->
+  <section id="auth" class="section">
+    <div class="y2k-divider"></div>
+    <h2>Try it yourself</h2>
+
+    <div id="account-panel" class="panel">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="register">Register a principal</button>
+        <button class="tab-btn" data-tab="login">Run the protocol</button>
+      </div>
+
+      <div class="tab-pane" id="tab-register">
+        <p>Create a test principal (this happens out-of-band in real Kerberos, e.g. via <code>kadmin addprinc</code>).</p>
+        <form id="register-form" class="inline-form">
+          <input type="text" id="reg-username" placeholder="username" autocomplete="off" required />
+          <input type="password" id="reg-password" placeholder="password" required />
+          <button type="submit">Register</button>
+        </form>
+        <div id="register-status" class="status-line"></div>
+      </div>
+
+      <div class="tab-pane hidden" id="tab-login">
+        <p>Enter the credentials for a registered principal, then step through the live exchange below.</p>
+        <form id="login-form" class="inline-form">
+          <input type="text" id="login-username" placeholder="username" autocomplete="off" required />
+          <input type="password" id="login-password" placeholder="password" required />
+          <button type="submit">Start AS exchange</button>
+        </form>
+        <div id="login-status" class="status-line"></div>
+      </div>
+    </div>
+
+    <div id="wizard" class="wizard hidden">
+      <div id="diagram-wizard" class="diagram-container small"></div>
+
+      <ol class="step-list" id="step-list"></ol>
+
+      <div class="wizard-actions">
+        <button id="btn-tgs-request" class="hidden">Request service ticket (TGS-REQ)&nbsp;→</button>
+        <button id="btn-ap-request" class="hidden">Connect to app-server (AP-REQ)&nbsp;→</button>
+      </div>
+    </div>
+
+    <div id="failure-lab" class="panel hidden">
+      <h3>Failure demos</h3>
+      <p>Each button re-runs a real step of the protocol with one thing deliberately wrong, and shows you the genuine cryptographic rejection — not a scripted error message.</p>
+      <div class="failure-grid">
+        <button data-demo="wrong-password">Wrong password</button>
+        <button data-demo="expired-ticket">Expired service ticket</button>
+        <button data-demo="replay">Replayed authenticator</button>
+        <button data-demo="tamper">Tampered ciphertext</button>
+      </div>
+      <div id="failure-output" class="failure-output"></div>
+    </div>
+
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="y2k-divider" style="margin-bottom: 24px;"></div>
+    <p>&#x2726; Educational simulation of Kerberos v5 protocol logic &#x2726;</p>
+    <p style="margin-top: 8px; font-size: 0.7rem; opacity: 0.5;">Single realm &middot; Simplified pre-auth &middot; Not a hardened production KDC</p>
+  </div>
+</footer>
+
+<div id="tooltip" class="tooltip hidden"></div>
+
+<script type="module" src="/js/app.js?v=2"></script>
+</body>
+</html>
