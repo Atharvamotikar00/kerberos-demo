@@ -6,8 +6,8 @@
 // authenticator, then checks freshness and replay before minting a service
 // ticket for the requested application server.
 
-const aes = require('../crypto/aes');
-const { randomBytes, toB64 } = require('../crypto/util');
+const aes = require('../aes');
+const { randomBytes, toB64 } = require('../util');
 const { KRBTGT_KEY, APP_SERVER_KEY } = require('../secrets');
 const { REALM } = require('./as');
 
